@@ -1,8 +1,7 @@
-## Demo 
+### About the project. 
 
-#### Repo 
+This is quidditch repo. It was my assignment for Analytics Programming Unit in University. 
 
-Some description. 
+Some more info:
 
-Some more.....
 
