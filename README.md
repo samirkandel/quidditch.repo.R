@@ -5,7 +5,7 @@ This is quidditch repo. It was my assignment for Analytics Programming Unit in U
 ### Assignment tasks:
 
 Internationalquidditch Federation (IQF) has contracted you to assist in their analysis and reporting of
-results. You have been provided the data file *competitionResults.csv* containing details of each match
+results. You have been provided the data file **competitionResults.csv** containing details of each match
 (the teams that played, which team caught the snitch, and each team’s number of goals).
 
 The IQF wants you to use the file to provide the needed four pieces of analysis below. The IQF also
