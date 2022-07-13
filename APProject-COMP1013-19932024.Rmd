@@ -1,0 +1,1208 @@
+---
+title: "APProject-COMP1013-19932024"
+author: "Samir kandel"
+date: '2022-06-03'
+output:
+  html_document: default
+  word_document: default
+  pdf_document: default
+---
+# 
+
+Student ID: **19932024**
+
+Unit: **Analytics Programming**
+
+Unit code: **COMP-1013**
+
+By including this statement, I the author of this work, verify that:
+
+• I hold a copy of this assignment that I can produce if the original is lost or damaged.
+
+• I hereby certify that no part of this assignment/product has been copied from any other student’s work or from any other source except where due acknowledgement is made in the assignment.
+
+© Copyright: Western Sydney University, 2022. No part of this publication may be reproduced or transmitted in any form or by any means, electronic or mechanical, including photocopying, recording, or by any information storage and retrieval system,
+without the prior written permission from the Dean, School of Computer, Data and Mathematical Sciences. Copyright for acknowledged materials reproduced herein is retained by the copyright holder. All readings in this publication are copied under licence in
+accordance with Part VB of the Copyright Act 1968.
+
+• No part of this assignment/product has been written/produced for me by another person except where such collaboration has been authorized by the subject lecturer/tutor concerned.
+
+• I am aware that this work may be reproduced and submitted to plagiarism detection software programs for the purpose of detecting possible plagiarism (which may retain a copy on its database for future plagiarism checking).
+
+• I hereby certify that I have read and understand what the School of Computing, Engineering and Mathematics defines as minor and substantial breaches of misconduct as outlined in the learning guide for this unit.
+
+## Project- The International Quidditch Federation (IQF)
+
+With the use of R programming techniques and R studio, I am going to provide four pieces of analysis and report the results.
+
+# 
+
+#### List of Libraries used:
+
+#
+
+```{r, message=FALSE, warning=FALSE}
+#Libraries used in the analysis:
+library(tidyverse)
+library(kableExtra)
+```
+
+#
+
+#### Reading the csv file:
+
+#
+
+First thing to do before starting the analysis of the data is to **load the dataset**. 
+
+```{r}
+#Reading the dataset and storing it into the variable "d"
+d <- read.csv("~/AnalyticsProgramming/APproject/competitionResults.csv")
+
+```
+
+#
+
+**Testing**- To have a look at the dataset
+
+#
+
+```{r}
+## Using "kableExtra" library function to shape the output
+head(d, n=5) %>% kbl() %>% kable_minimal()
+```
+
+#
+
+## Task 1
+
+#
+
+In this piece of analysis, the code is written to **compute the total score** by each individual team for each match. Result table is provided showing: **season, round number, match number, home team, away team, home score and away score**.
+
+#
+
+#### Changing variable types and modifying data to suit the analysis
+
+#
+
+```{r}
+# Using factor to convert round and Season variable into categorical variable.
+d$round <- as.factor(d$round)
+d$Season <- as.factor(d$Season)
+
+# Function to calculate individual team score based on goals (without snitch score)
+calculatescore <- function(goals){
+    return(goals * 10)
+} 
+
+# Adding totalHomeScore and totalAwayScore columns producing new dataset "modifyd".
+modifyd <- d %>% mutate(totalHomeScore = calculatescore(homeGoals), totalAwayScore= calculatescore(awayGoals))
+
+
+```
+
+# 
+
+#### Calculating Scores
+
+#
+
+```{r}
+# "count" variable store the value of number of rows in "modifyd" dataframe.
+count <- count(modifyd)
+
+# Looping through each row in the "modifyd" dataframe
+for (num in 1:count$n){
+  
+  # Adding a match number column to identify each match of the season
+  modifyd$matchNumber[num] <- num
+  
+  # If a team caught the snitch, incrementing its scoreboard by 50 points.
+  if (modifyd$homeTeam[num] == modifyd$snitch[num]){
+    modifyd$totalHomeScore[num] = modifyd$totalHomeScore[num] + 50
+  }
+  if (modifyd$awayTeam[num] == modifyd$snitch[num]){
+    modifyd$totalAwayScore[num] = modifyd$totalAwayScore[num] + 50
+  }
+}
+
+# Testing.
+testtask1 <- modifyd %>% select(homeTeam, awayTeam, totalHomeScore, totalAwayScore)
+head(testtask1, n=5) %>% kbl() %>% kable_minimal()
+
+```
+
+#
+
+### Modelling Result:
+
+#
+
+```{r}
+# Using "tidyverse" to select the content of the table for output.
+resultTask1 <- modifyd %>% select(Season, round, homeTeam, awayTeam, totalHomeScore, totalAwayScore) 
+
+#Using "kableExtra" library to display themed table output.
+kbl(head(resultTask1)) %>% 
+  kable_styling(bootstrap_options = c("condensed", "striped", "hover")) %>%
+  footnote(general = "Fig- Scoreboard of each team in each match for Task 1.", 
+             symbol = c("Only looking at first 6 rows of dataframe for analysis"))
+```
+
+#
+#
+
+
+## Task 2
+
+In this piece of analysis, the code is written to compute each team's points after **5 rounds** of matches (**Table 1**) and then **all** matches (**Table 2**). Resulting 2 tables are provided during analysis as a result ladder.
+
+#
+
+#### Assigning points to Teams
+
+#
+
+```{r}
+# Looping through all rows of data to calculate points and add it to the dataframe.
+for (num in 1:count$n){
+  
+  # Assigning points to teams based on win, lose or draw.
+  # For home team winning the match.
+  if (modifyd$totalHomeScore[num] > modifyd$totalAwayScore[num]){
+    modifyd$hometeam_points[num] = 3
+    modifyd$awayteam_points[num] = 0
+  }
+  # For away team winning the match.
+  else if (modifyd$totalHomeScore[num] < modifyd$totalAwayScore[num]){
+    modifyd$hometeam_points[num] = 0
+    modifyd$awayteam_points[num] = 3
+  }
+  # Draw match.
+  else {
+    modifyd$hometeam_points[num] = 1
+    modifyd$awayteam_points[num] = 1
+  }
+}
+
+```
+
+#
+
+#### Selection of Season for analysis
+
+#
+
+```{r}
+# Final digit of my SID corresponds with the 2014 season
+# Creating a dataframe "modifySeason" containing all the match stats only from the 2014 season. 
+
+modifySeason <- modifyd %>% filter(Season == 2014)
+
+# Testing.
+test1task2 <- modifySeason %>% select(Season, homeTeam, awayTeam, matchNumber)
+kbl(head(test1task2, n=5))
+
+# Storing the list of individual team name in the season as "team_name" variable.
+
+team_name = unique(modifySeason$awayTeam)
+
+# creating empty list "team_points" having equal length as "team_name" list 
+
+team_points = rep(0, length(team_name))
+
+```
+
+#
+
+### Task 2: Table 1
+
+#
+
+#### Calculating total points of a team.
+
+#
+
+```{r}
+# Looping over each team to calculate total points of all teams in a season.
+for (n in 1:length(team_name)){
+  
+  # Finding the index for home and away team
+  awayteam_pos <- which(modifySeason$awayTeam == team_name[n])
+  hometeam_pos <- which(modifySeason$homeTeam == team_name[n])
+  
+  # team_pos stores indexes of matches when a specific team played 
+  team_pos <- sort(c(hometeam_pos, awayteam_pos))
+  
+  # Storing a list of home/away points for specific team 
+  team_match_point <- c()
+  
+  # Looping over 5 rounds of games (5 matches per team)
+  for (pos in 1:5){
+    
+    # Picks specific match played by a team
+    checknum <- team_pos[pos]
+    
+    # checking if that specific match was a home game or away
+    if(checknum %in% hometeam_pos){
+      
+      # Storing point obtained in a home game of a specific team
+      match_point <- modifySeason$hometeam_points[checknum]
+    }
+    else {
+      # Storing point obtained in a away game of a specific team
+      match_point <- modifySeason$awayteam_points[checknum]
+    }
+    
+    # Combining all the points (both home & away) acquired by specific team 
+    team_match_point <- c(team_match_point, match_point)
+  }
+  # Adding all individual team point to store it as a total team points
+  team_points [n] <- sum(team_match_point[])
+}
+
+#Testing
+if (length(team_points) == length(team_name)){
+  print(paste("There will be ", length(team_points), " number of rows in the result dataframe."))
+}
+
+```
+
+#
+
+#### Modelling result:
+
+#
+
+```{r}
+# Adding team names and corresponding points into the dataframe "resultTaskTable1"
+resultTask2Table1 <- data.frame(TeamName = team_name, TeamPoints = team_points)
+
+# Sorting team points on descending order to make it look like a result ladder.
+resultTask2Table1 <- resultTask2Table1[order(resultTask2Table1$TeamPoints, decreasing = TRUE), ]
+
+#Using "kableExtra" library to display themed table output.
+kbl(head(resultTask2Table1, n=10)) %>% 
+  kable_styling(bootstrap_options = c("condensed", "striped", "hover")) %>%
+  footnote(general = "Fig- Points ladder for Task 2: Table 1.", 
+             symbol = c("Looking at first 10 rows in scoreboard for analysis"))
+```
+
+#
+
+### Task 2: Table 2
+
+#
+
+#### Calculating total points of a team.
+
+#
+
+```{r}
+# Looping over each team to calculate total points of all teams in a season.
+for (n in 1:length(team_name)){
+  
+  # Finding the index for home and away team
+  awayteam_pos <- which(modifySeason$awayTeam == team_name[n])
+  hometeam_pos <- which(modifySeason$homeTeam == team_name[n])
+  
+  # team_pos stores indexes of matches when a specific team played 
+  team_pos <- sort(c(hometeam_pos, awayteam_pos))
+  
+  # Storing a list of home/away points for specific team 
+  team_match_point <- c()
+  
+  # Looping through all matches played by a team in a whole season
+  for (pos in 1:length(team_pos)){
+    
+    # Picks specific match played by a team
+    checknum <- team_pos[pos]
+    
+    # checking if that specific match was a home game or away
+    if(checknum %in% hometeam_pos){
+      
+      # Storing point obtained in a home game of a specific team
+      match_point <- modifySeason$hometeam_points[checknum]
+    }
+    else {
+      # Storing point obtained in a away game of a specific team
+      match_point <- modifySeason$awayteam_points[checknum]
+    }
+    
+    # Combining all the points (both home & away) acquired by specific team 
+    team_match_point <- c(team_match_point, match_point)
+  }
+  # Adding all individual team point to store it as a total team points
+  team_points [n] <- sum(team_match_point[])
+}
+
+#Testing
+if (length(team_points) == length(team_name)){
+  print(paste("There will be ", length(team_points), " number of rows in the result dataframe."))
+}
+```
+
+#
+
+#### Modelling the result
+
+#
+
+```{r}
+# Adding team names and corresponding points into the dataframe "resultTaskTable1"
+resultTask2Table2 <- data.frame(TeamName = team_name, TeamPoints = team_points)
+
+# Sorting team points by descending order (like a result ladder).
+resultTask2Table2 <- resultTask2Table2[order(resultTask2Table2$TeamPoints, decreasing = TRUE), ]
+
+#Using "kableExtra" library to display themed table output.
+kbl(head(resultTask2Table2, n=10)) %>% 
+  kable_styling(bootstrap_options = c("condensed", "striped", "hover")) %>%
+  footnote(general = "Fig- Points ladder for Task 2: Table 2.", 
+             symbol = c("Looking at first 10 rows in scoreboard for analysis"))
+```
+
+
+#
+#
+
+## Task 3
+
+#
+
+In this piece of analysis, the code is written to find out whether the teams had **home game advantage**. Result table is provided during analysis showing: **team names, team points, home team points, number of home game and total number of game**. 
+
+#
+
+#### Functions for specific purpose
+
+#
+
+##### 1. Return a count of home games each team has had
+
+#
+
+```{r}
+# Function returning a count of home games each team played.
+numTotal_homegame <- function(team_name){
+  
+  # Empty list to start with
+  countList <- c()
+  
+  # Looping through each team 
+  for (num1 in 1:length(team_name)){
+    
+    # Variable for counting
+    countVar = 0
+    
+    # Assigning a team name to a variable based on index
+    varTeam <- team_name[num1]
+    
+    # Looping through all the rows
+    for (num2 in 1:count$n){
+      if (varTeam == modifyd$homeTeam[num2]){
+        countVar = countVar + 1
+      }
+    }
+    countList <- c(countList, countVar)
+  }
+  return(countList)
+}
+```
+
+#
+
+##### 2. Total number of games each team has played in
+
+#
+
+```{r}
+# Function returning total number games each team has played.
+numTotal_game <- function(team_name){
+  
+  # Empty list to start with
+  countList <- c()
+  
+  # Looping through each team 
+  for (num1 in 1:length(team_name)){
+    
+    countVar = 0
+    
+    # Assigning a team name to a variable based on index
+    varTeam <- team_name[num1]
+    
+    # Looping through all the rows
+    for (num2 in 1:count$n){
+      if ((varTeam == modifyd$homeTeam[num2]) || (varTeam == modifyd$awayTeam[num2])){
+        countVar = countVar + 1
+      }
+    }
+    countList <- c(countList, countVar)
+  }
+  return(countList)
+}
+
+```
+
+#
+
+##### 3. Total points scored in a home game
+
+#
+
+```{r}
+# Function returning total points scored by each team in their home ground.
+pointsTotal_homegame <- function(team_name){
+  
+  # Empty list to start with
+  countList <- c()
+  
+  # Looping through each team
+  for (num1 in 1:length(team_name)){
+    
+    countVar = 0
+    
+    # Assigning a team name to a variable based on index
+    varTeam <- team_name[num1]
+    
+    # Looping through all the rows
+    for (num2 in 1:count$n){
+      if (varTeam == modifyd$homeTeam[num2]){
+        countVar = countVar + modifyd$hometeam_points[num2]
+      }
+    }
+    countList <- c(countList, countVar)
+  }
+  return(countList)
+}
+```
+
+#
+
+##### 4. Total number points the team scored 
+
+#
+
+```{r}
+# Function returning total points scored by each team.
+pointsTotal_game <- function(team_name){
+  
+  # Empty list to start with
+  countList <- c()
+  
+  # Looping through each team
+  for (num1 in 1:length(team_name)){
+    
+    countVar = 0
+    
+    # Assigning a team name to a variable based on index
+    varTeam <- team_name[num1]
+    
+    # Looping through all the rows
+    for (num2 in 1:count$n){
+      if (varTeam == modifyd$homeTeam[num2]){
+        countVar = countVar + modifyd$hometeam_points[num2]
+      }
+      if (varTeam == modifyd$awayTeam[num2]){
+        countVar = countVar + modifyd$awayteam_points[num2]
+      }
+    }
+    countList <- c(countList, countVar)
+  }
+  return(countList)
+}
+
+# Testing
+testtask3 <- head(data.frame( 
+  teamname = team_name,
+  Total_Game = numTotal_game(team_name),
+  Points_Game = pointsTotal_game(team_name)
+  ), n=5)
+kbl(testtask3)
+```
+
+#
+
+#### Modelling the result
+
+#
+
+```{r}
+# Creating a data frame "resultTask3" to store results
+resultTask3 <- data.frame( 
+  teamname = team_name,
+  Home_Game = numTotal_homegame(team_name),
+  Total_Game = numTotal_game(team_name),
+  Points_Home = pointsTotal_homegame(team_name),
+  Points_Game = pointsTotal_game(team_name)
+  )
+
+# It is for future analysis.
+# Extra: Adding two more column for analysis of home game advantage
+resultTask3 <- resultTask3 %>% mutate(PPHG = Points_Home/Home_Game , PPAG = (Points_Game - Points_Home)/(Total_Game-Home_Game))
+
+#Using "kableExtra" library to display themed table output.
+kbl(resultTask3) %>% 
+  kable_styling(bootstrap_options = c("condensed", "striped", "hover")) %>%
+  footnote(general = "Fig- Points ladder for Task 3.", 
+           number = c("PPAG = Points per home game played;", "PPHG = Points per away game played;"), 
+           symbol = c("Looking at all rows of dataframe for analysis"))
+```
+
+#
+#
+
+## Task 4
+
+#
+
+In this piece of analysis, the code is written to provide **team statistics for all seasons**.Result table is provided during analysis showing: club name, number of tournament win, match played, win, draw, lose, number of snitch, total for goals, total against goals, goal difference, points conceded and points collected.
+
+#
+
+#### Functions for specific purpose
+
+#
+
+```{r}
+## Assigning a list of all teams to a variable
+team_name <- unique(modifyd$homeTeam)
+```
+
+#
+
+##### 1. Returns total number of games played by each team.
+
+#
+
+```{r}
+numTotal_games <- function(team_name){
+  
+  ## Empty list to start with
+  countList <- c()
+  
+  ## Looping through each team 
+  for (num1 in 1:length(team_name)){
+    
+    ## Variable for counting
+    countVar = 0
+    
+    ## Assigning a team name to a variable based on index
+    varTeam <- team_name[num1]
+    
+    ## Looping through the data set
+    for (num2 in 1:count$n){
+      if ((varTeam == modifyd$homeTeam[num2]) || (varTeam == modifyd$awayTeam[num2])){
+        countVar = countVar + 1
+      }
+    }
+    countList <- c(countList, countVar)
+  }
+  return(countList)
+}
+
+# Testing
+test1task4 <- head(data.frame( 
+  teamname = team_name,
+  Total_Game = numTotal_games(team_name)), n=4)
+kbl(test1task4)
+```
+
+#
+
+##### 2. Function returning total number of wins by each team.
+
+#
+
+```{r}
+numTotal_win <- function(team_name){
+  
+  ## Empty list to start with
+  countList <- c()
+  
+  ## Looping through each team 
+  for (num1 in 1:length(team_name)){
+    
+    ## Variable for counting
+    countVar = 0
+    
+    ## Assigning a team name to a variable based on index
+    varTeam <- team_name[num1]
+    
+    ## Looping through the data set
+    for (num2 in 1:count$n){
+      if (varTeam == modifyd$homeTeam[num2]){
+        if(modifyd$hometeam_points[num2] == 3){
+          countVar = countVar + 1
+        }
+      }
+      if (varTeam == modifyd$awayTeam[num2]){
+        if(modifyd$awayteam_points[num2] == 3){
+          countVar = countVar + 1
+        }
+      }
+    }
+    countList <- c(countList, countVar)
+  }
+  return(countList)
+}
+```
+
+#
+
+##### 3. Function returning total number of draw by each team.
+
+#
+
+```{r}
+numTotal_draw <- function(team_name){
+  
+  ## Empty list to start with
+  countList <- c()
+  
+  ## Looping through each team 
+  for (num1 in 1:length(team_name)){
+    
+    ## Variable for counting
+    countVar = 0
+    
+    ## Assigning a team name to a variable based on index
+    varTeam <- team_name[num1]
+    
+    ## Looping through the data set
+    for (num2 in 1:count$n){
+      if (varTeam == modifyd$homeTeam[num2]){
+        if(modifyd$hometeam_points[num2] == 0){
+          countVar = countVar + 1
+        }
+      }
+      if (varTeam == modifyd$awayTeam[num2]){
+        if(modifyd$awayteam_points[num2] == 0){
+          countVar = countVar + 1
+        }
+      }
+    }
+    countList <- c(countList, countVar)
+  }
+  return(countList)
+}
+```
+
+#
+
+##### 4. Function returning total number of lost matches by each team.
+
+#
+
+```{r}
+numTotal_lose <- function(team_name){
+  
+  ## Empty list to start with
+  countList <- c()
+  
+  ## Looping through each team 
+  for (num1 in 1:length(team_name)){
+    
+    ## Variable for counting
+    countVar = 0
+    
+    ## Assigning a team name to a variable based on index
+    varTeam <- team_name[num1]
+    
+    ## Looping through the data set
+    for (num2 in 1:count$n){
+      if (varTeam == modifyd$homeTeam[num2]){
+        if(modifyd$awayteam_points[num2] == 1){
+          countVar = countVar + 1
+        }
+      }
+      if (varTeam == modifyd$awayTeam[num2]){
+        if(modifyd$hometeam_points[num2] == 1){
+          countVar = countVar + 1
+        }
+      }
+    }
+    countList <- c(countList, countVar)
+  }
+  return(countList)
+}
+
+# Testing
+test2task4 <- head(data.frame( 
+  teamname = team_name,
+  MatchPlayed = numTotal_games(team_name),
+  Win = numTotal_win(team_name),
+  Draw = numTotal_draw(team_name),
+  Lose = numTotal_lose(team_name)), n=4) 
+
+test2task4%>% kbl() %>% kable_minimal()
+
+```
+
+#
+
+##### 5. Returns number of snitch caught by each team.
+
+#
+
+```{r}
+num_snitch <- function(team_name){
+  
+  ## Empty list to start with
+  countList <- c()
+  
+  ## Looping through each team 
+  for (num1 in 1:length(team_name)){
+    
+    ## Variable for counting
+    countVar = 0
+    
+    ## Assigning a team name to a variable based on index
+    varTeam <- team_name[num1]
+    
+    ## Looping through the data set
+    for (num2 in 1:count$n){
+      if (varTeam == modifyd$snitch[num2]){
+        countVar = countVar + 1
+      }
+    }
+    countList <- c(countList, countVar)
+  }
+  return(countList)
+}
+```
+
+#
+
+##### 6. Returns number of goal scored by each team.
+
+#
+
+```{r}
+num_goalfor <- function(team_name){
+  
+  ## Empty list to start with
+  countList <- c()
+  
+  ## Looping through each team 
+  for (num1 in 1:length(team_name)){
+    
+    ## Variable for counting
+    countVar = 0
+    
+    ## Assigning a team name to a variable based on index
+    varTeam <- team_name[num1]
+    
+    ## Looping through the data set
+    for (num2 in 1:count$n){
+      if (varTeam == modifyd$homeTeam[num2]){
+        countVar = countVar + modifyd$homeGoals[num2]
+      }
+      if (varTeam == modifyd$awayTeam[num2]){
+        countVar = countVar + modifyd$awayGoals[num2]
+      }
+    }
+    countList <- c(countList, countVar)
+  }
+  return(countList)
+}
+```
+
+#
+
+##### 7. Returns number of goal conceded by each team.
+
+#
+
+```{r}
+num_goalagainst <- function(team_name){
+  
+  ## Empty list to start with
+  countList <- c()
+  
+  ## Looping through each team 
+  for (num1 in 1:length(team_name)){
+    
+    ## Variable for counting
+    countVar = 0
+    
+    ## Assigning a team name to a variable based on index
+    varTeam <- team_name[num1]
+    
+    ## Looping through the data set
+    for (num2 in 1:count$n){
+      if (varTeam == modifyd$homeTeam[num2]){
+        countVar = countVar + modifyd$awayGoals[num2]
+      }
+      if (varTeam == modifyd$awayTeam[num2]){
+        countVar = countVar + modifyd$homeGoals[num2]
+      }
+    }
+    countList <- c(countList, countVar)
+  }
+  return(countList)
+}
+```
+
+#
+
+##### 8. Returns number goal difference of each team.
+
+#
+
+```{r}
+num_goaldiff <- function(team_name){
+  
+  ## Empty list to start with
+  countList <- c()
+  
+  ## Looping through each team 
+  for (num1 in 1:length(team_name)){
+    
+    ## Variable for counting
+    countVar = 0
+    
+    ## Assigning a team name to a variable based on index
+    varTeam <- team_name[num1]
+    
+    ## Looping through the data set
+    for (num2 in 1:count$n){
+      if (varTeam == modifyd$homeTeam[num2]){
+        countVar = countVar + modifyd$homeGoals[num2] - modifyd$awayGoals[num2]
+      }
+      if (varTeam == modifyd$awayTeam[num2]){
+        countVar = countVar + modifyd$awayGoals[num2] - modifyd$homeGoals[num2]
+      }
+    }
+    countList <- c(countList, countVar)
+  }
+  return(countList)
+}
+```
+
+#
+
+##### 9. Returns total points conceded by each team.
+
+#
+
+```{r}
+points_conceded <- function(team_name){
+  
+  ## Empty list to start with
+  countList <- c()
+  
+  ## Looping through each team 
+  for (num1 in 1:length(team_name)){
+    
+    ## Variable for counting
+    countVar = 0
+    
+    ## Assigning a team name to a variable based on index
+    varTeam <- team_name[num1]
+    
+    ## Looping through the data set
+    for (num2 in 1:count$n){
+      if (varTeam == modifyd$homeTeam[num2]){
+        countVar = countVar + modifyd$awayteam_points[num2]
+      }
+      if (varTeam == modifyd$awayTeam[num2]){
+        countVar = countVar + modifyd$hometeam_points[num2]
+      }
+    }
+    countList <- c(countList, countVar)
+  }
+  return(countList)
+}
+```
+
+#
+
+##### 10. Returns total points collected by each team.
+
+#
+
+```{r}
+pointsTotal_game <- function(team_name){
+  
+  ## Empty list to start with
+  countList <- c()
+  
+  ## Looping through each team 
+  for (num1 in 1:length(team_name)){
+    
+    ## Variable for counting
+    countVar = 0
+    
+    ## Assigning a team name to a variable based on index
+    varTeam <- team_name[num1]
+    
+    ## Looping through the data set
+    for (num2 in 1:count$n){
+      if (varTeam == modifyd$homeTeam[num2]){
+        countVar = countVar + modifyd$hometeam_points[num2]
+      }
+      if (varTeam == modifyd$awayTeam[num2]){
+        countVar = countVar + modifyd$awayteam_points[num2]
+      }
+    }
+    countList <- c(countList, countVar)
+  }
+  return(countList)
+}
+```
+
+#
+
+##### Creating a data frame using functional elements.
+
+#
+
+```{r}
+# Creating for testing purpose.
+# Must be run for functions to work and test.
+
+resultTask4 <- data.frame( 
+  
+  Club = team_name,
+  
+  MP = numTotal_game(team_name),
+  
+  W = numTotal_win(team_name),
+  
+  D = numTotal_draw(team_name),
+  
+  L = numTotal_lose(team_name),
+  
+  #WP = percent_win(team_name),
+  #Since percent_win function is using one of the function from this dataframe so it cant be called simultaneously with resultTask4.
+  
+  Snch = num_snitch(team_name),
+  
+  GF = num_goalfor(team_name),
+  
+  GA = num_goalagainst(team_name),
+  
+  GD = num_goaldiff(team_name),
+  
+  CPts = points_conceded(team_name),
+  
+  Pts = pointsTotal_game(team_name)
+  
+  #tournamentWin = tournWin; same reason to percent_win function 
+)
+
+```
+
+#
+
+##### 11. Returns winning percentage for each team.
+
+#
+
+```{r}
+percent_win <- function(team_name){
+  
+  ## Empty list to start with
+  countList <- c()
+  
+  ## Looping through each team 
+  for (num1 in 1:length(team_name)){
+    
+    ## Variable for counting
+    countVar = 0
+    
+    ## Assigning a team name to a variable based on index
+    varTeam <- team_name[num1]
+    
+    ## Looping through the data set
+    for (num2 in 1:count$n){
+      if (varTeam == modifyd$homeTeam[num2]){
+        if(modifyd$hometeam_points[num2] == 3){
+          countVar = countVar + 1
+        }
+      }
+      if (varTeam == modifyd$awayTeam[num2]){
+        if(modifyd$awayteam_points[num2] == 3){
+          countVar = countVar + 1
+        }
+      }
+    }
+    countList <- c(countList, countVar/resultTask4$MP[num1])
+  }
+  return(round(countList, digits = 2))
+}
+```
+
+#
+
+#### 12. Calculating number of tournament win
+
+#
+
+```{r}
+
+# Storing unique list of Season in "tournament" variable
+tournament = unique(modifyd$Season)
+
+# Storing unique list of team names in "team_name" variable
+team_name = unique(resultTask4$Club)
+
+# Creating empty list with same length as uniquely identified team names list.
+winnerList = rep(0, length(team_name))
+
+# Looping through each season
+for (num1 in 1:length(tournament)){
+  
+  modifyT <- modifyd %>% filter(Season == tournament[num1])
+  
+  # creating empty list having equal length as "team_name" list 
+  team_points = rep(0, length(team_name))
+
+  # Looping through each team
+  for (n in 1:length(team_name)){
+    
+    # Finding the index for home and away team and storing it in different variable
+    awayteam_pos <- which(modifyT$awayTeam == team_name[n])
+    hometeam_pos <- which(modifyT$homeTeam == team_name[n])
+    
+    # Ending loop if a team is not playing that season
+    if (length(awayteam_pos) == 0){
+      team_match_point [n]<- 0
+      next
+    }
+    
+    # Storing indexes of played matched and sorting it for analysis
+    team_pos <- sort(c(hometeam_pos, awayteam_pos))
+    
+    # Storing a list of home/away points 
+    team_match_point <- c()
+    
+    # Looping through match played by team
+    for (pos in 1:length(team_pos)){
+      
+      # Picks specific match played by that team
+      checknum <- team_pos[pos]
+      
+      # checking if that specific match was a home game or away
+      if(checknum %in% hometeam_pos){
+        
+        # Storing point obtained in a home game 
+        match_point <- modifyT$hometeam_points[checknum]
+      }
+      else {
+        # Storing point obtained in a away game 
+        match_point <- modifyT$awayteam_points[checknum]
+      }
+      
+      # Acquiring all the points (both home & away)
+      team_match_point <- c(team_match_point, match_point)
+    }
+    # Adding all individual team point to store it as a total team points
+    team_points [n] <- sum(team_match_point[])
+  }
+  
+  # Selecting the index of a season winner
+  seasonWinnerIndex <- match(max(team_points), team_points[])
+  winnerList <- c(seasonWinnerIndex, winnerList)
+}
+
+# Adding data into the data frame for tournaments wins
+
+# Creating empty list with same length as uniquely identified team names list.
+tourWin = c()
+
+for (var1 in 1:length(team_name)){
+  
+  counter = 0
+  
+  for (var2 in 1:length(winnerList)){
+    
+    ## If a team have won tournaments, incrementing its scoreboard by 1 points.
+    if (var1 == winnerList[var2]){
+      counter = counter + 1
+    }
+  }
+  tourWin = c(tourWin, counter)
+}
+```
+
+#
+
+#### Modelling the result.
+
+#
+
+```{r}
+# Bringing all data together
+resultTask4 <- data.frame( 
+  
+  Club = team_name,
+  
+  TW = tourWin,
+  
+  MP = numTotal_game(team_name),
+  
+  W = numTotal_win(team_name),
+  
+  D = numTotal_draw(team_name),
+  
+  L = numTotal_lose(team_name),
+  
+  WP = percent_win(team_name),
+  
+  Snch = num_snitch(team_name),
+  
+  GF = num_goalfor(team_name),
+  
+  GA = num_goalagainst(team_name),
+  
+  GD = num_goaldiff(team_name),
+  
+  CPts = points_conceded(team_name),
+  
+  Pts = pointsTotal_game(team_name)
+)
+
+```
+
+#
+
+### Final Scoreboard Result:
+
+#
+
+```{r}
+# Sorting team points by descending order (like a result ladder).
+resultTask4 <- resultTask4[order(-resultTask4$Pts), ]
+
+
+#Using "kableExtra" library to display themed table output.
+kbl(resultTask4) %>% 
+  kable_styling(bootstrap_options = c("condensed", "striped", "hover")) %>%
+  footnote(general = "Fig- Points ladder for Task 4.", 
+           number = c("MP = Match Played;", "TW = Number of Tournament Win", "W = Win;", "D = Draw;", "L = Lose;", "WP = Winning percentage;", "Snch = Number of snitch caught;", "GF = Goal For", "GA = Goal Against", "GD = Goal Difference;", "CPts = Points conceded;", "Pts = Points collected;"),
+             symbol = c("All rows of dataframe are displayed for analysis"))
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
